@@ -25,6 +25,7 @@ def generator(samples, batch_size=32):
             angles = []
             for batch_sample in batch_samples:
                 name = './data/IMG/' + batch_sample[0].split('/')[-1]
+
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -36,7 +37,7 @@ def generator(samples, batch_size=32):
 
                 image = image / 255. - 0.5
                 images.append(image[60:-20, :, :])
-                angles.append(batch_sample[1])
+                angles.append(angle)
 
             X_train = np.array(images)
             y_train = np.array(angles)
