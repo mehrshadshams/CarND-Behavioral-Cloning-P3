@@ -31,7 +31,7 @@ def generator(samples, batch_size=32):
                 angle = batch_sample[1]
 
                 if np.random.rand() > 0.5:
-                    image = np.flipr(image)
+                    image = np.fliplr(image)
                     angle *= -1
 
                 image = image / 255. - 0.5
@@ -78,8 +78,8 @@ def main():
             center, left, right, steering, throttle, _break, speed = row
             steering = float(steering)
             samples.append([center, steering, throttle, _break, speed])
-            samples.append([left, steering + 0.2, throttle, _break, speed])
-            samples.append([right, steering - 0.2, throttle, _break, speed])
+            samples.append([left, steering + 0.1, throttle, _break, speed])
+            samples.append([right, steering - 0.1, throttle, _break, speed])
 
     train_samples, valid_samples = train_test_split(samples)
 
@@ -88,8 +88,8 @@ def main():
 
     model = create_model()
 
-    checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.hdf5', monitor='val_loss', verbose=1,
-                                 save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.h5', monitor='val_loss', verbose=1,
+                                 save_best_only=True)
 
     model.fit_generator(generator=train_generator,
                         steps_per_epoch=len(train_samples) // BATCH_SIZE,
