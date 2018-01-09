@@ -9,7 +9,6 @@ from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-
 BATCH_SIZE = 32
 EPOCHS = 10
 
@@ -28,15 +27,15 @@ def generator(samples, batch_size=32):
                 name = './data/IMG/' + batch_sample[0].split('/')[-1]
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-              	
+
                 angle = batch_sample[1]
 
                 if np.random.rand() > 0.5:
                     image = np.flipr(image)
                     angle *= -1
 
-		image = image / 255. - 0.5
-                images.append(image[60:-20,:,:])
+                image = image / 255. - 0.5
+                images.append(image[60:-20, :, :])
                 angles.append(batch_sample[1])
 
             X_train = np.array(images)
@@ -89,7 +88,8 @@ def main():
 
     model = create_model()
 
-    checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.hdf5', monitor='val_loss', verbose=1, save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.hdf5', monitor='val_loss', verbose=1,
+                                 save_best_only=True, mode='max')
 
     model.fit_generator(generator=train_generator,
                         steps_per_epoch=len(train_samples) // BATCH_SIZE,
