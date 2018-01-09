@@ -5,12 +5,13 @@ import numpy as np
 from keras.models import Model, load_model
 from keras.layers import Input, Lambda, Dense, Conv2D, Flatten, MaxPool2D, Dropout
 from keras.preprocessing import image
+from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
 
 BATCH_SIZE = 32
-EPOCHS = 1
+EPOCHS = 10
 
 
 def generator(samples, batch_size=32):
@@ -27,8 +28,15 @@ def generator(samples, batch_size=32):
                 name = './data/IMG/' + batch_sample[0].split('/')[-1]
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                image = image / 255. - 0.5
-                images.append(image)
+              	
+                angle = batch_sample[1]
+
+                if np.random.rand() > 0.5:
+                    image = np.flipr(image)
+                    angle *= -1
+
+		image = image / 255. - 0.5
+                images.append(image[60:-20,:,:])
                 angles.append(batch_sample[1])
 
             X_train = np.array(images)
@@ -38,12 +46,18 @@ def generator(samples, batch_size=32):
 
 
 def create_model():
-    inp = Input(shape=(160, 320, 3))
-    x = Conv2D(32, (5, 5), activation='relu')(inp)
+    inp = Input(shape=(80, 320, 3))
+    x = Conv2D(24, (5, 5), activation='relu')(inp)
     x = MaxPool2D()(x)
-    x = Conv2D(64, (5, 5), activation='relu')(x)
+    x = Conv2D(36, (5, 5), activation='relu')(x)
     x = MaxPool2D()(x)
+    x = Conv2D(48, (3, 3), activation='relu')(x)
+    x = MaxPool2D()(x)
+    x = Conv2D(64, (3, 3), activation='relu')(x)
     x = Flatten()(x)
+    x = Dense(100, activation='relu')(x)
+    x = Dense(50, activation='relu')(x)
+    x = Dense(10, activation='relu')(x)
     output = Dense(1, activation='relu')(x)
 
     model = Model(inputs=inp, outputs=output)
@@ -75,11 +89,14 @@ def main():
 
     model = create_model()
 
+    checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.hdf5', monitor='val_loss', verbose=1, save_best_only=True, mode='max')
+
     model.fit_generator(generator=train_generator,
                         steps_per_epoch=len(train_samples) // BATCH_SIZE,
                         validation_data=valid_generator,
                         validation_steps=len(valid_samples) // BATCH_SIZE,
-                        epochs=EPOCHS)
+                        epochs=EPOCHS,
+                        callbacks=[checkpoint])
 
     model.save('model.h5')
 
