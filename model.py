@@ -57,6 +57,7 @@ def create_model():
     x = Conv2D(64, (3, 3), activation='elu')(x)
     # x = MaxPool2D()(x)
     x = Conv2D(64, (3, 3), activation='elu')(x)
+    x = Dropout(rate=0.5)(x)
     x = Flatten()(x)
     x = Dense(100, activation='elu')(x)
     x = Dense(50, activation='elu')(x)
@@ -95,7 +96,7 @@ def main(args):
     checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.h5', monitor='val_loss', verbose=1,
                                  save_best_only=True)
 
-    print(f'Training model for {args.epochs} epochs.')
+    print('Training model for {0} epochs.'.format(args.epochs))
 
     model.fit_generator(generator=train_generator,
                         steps_per_epoch=len(train_samples) // BATCH_SIZE,
