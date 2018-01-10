@@ -2,6 +2,7 @@ import csv
 import pandas as pd
 import cv2
 import numpy as np
+import argparse
 from keras.models import Model, load_model
 from keras.layers import Input, Lambda, Dense, Conv2D, Flatten, MaxPool2D, Dropout
 from keras.preprocessing import image
@@ -68,7 +69,7 @@ def create_model():
     return model
 
 
-def main():
+def main(args):
     print('Reading driving log...')
 
     samples = []
@@ -94,15 +95,22 @@ def main():
     checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.h5', monitor='val_loss', verbose=1,
                                  save_best_only=True)
 
+    print(f'Training model for {args.epochs} epochs.')
+
     model.fit_generator(generator=train_generator,
                         steps_per_epoch=len(train_samples) // BATCH_SIZE,
                         validation_data=valid_generator,
                         validation_steps=len(valid_samples) // BATCH_SIZE,
-                        epochs=EPOCHS,
+                        epochs=args.epochs,
                         callbacks=[checkpoint])
 
     model.save('model.h5')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Model arguments.')
+    parser.add_argument('--epochs', type=int, default=EPOCHS,
+                        help='Number of epochs')
+
+    args = parser.parse_args()
+    main(args)
