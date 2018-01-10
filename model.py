@@ -83,8 +83,16 @@ def main(args):
             center, left, right, steering, throttle, _break, speed = row
             steering = float(steering)
             samples.append([center, steering, throttle, _break, speed])
-            samples.append([left, steering + 0.1, throttle, _break, speed])
-            samples.append([right, steering - 0.1, throttle, _break, speed])
+
+            left_steer, right_steer = 0, 0
+            if steering > 0:
+                left_steer = steering * 1.25
+                right_steer = steering * 0.75
+            elif steering < 0:
+                left_steer = steering * 0.75
+                right_steer = steering * 1.25
+            samples.append([left, left_steer, throttle, _break, speed])
+            samples.append([right, right_steer, throttle, _break, speed])
 
     train_samples, valid_samples = train_test_split(samples)
 
