@@ -5,13 +5,25 @@ import numpy as np
 import argparse
 from keras.models import Model, load_model
 from keras.layers import Input, Lambda, Dense, Conv2D, Flatten, MaxPool2D, Dropout
-from keras.preprocessing import image
+# from keras.preprocessing import image as image_process
+import transformations
 from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
 BATCH_SIZE = 32
 EPOCHS = 10
+
+
+def extend_image(image, angle):
+    # rotation
+    image, r = transformations.random_rotation(image, 15, row_axis=0, col_axis=1, channel_axis=2)
+    angle += (0.1 / 15) * r
+
+    image, tx, ty = transformations.random_shift(image, 20, 20, row_axis=0, col_axis=1, channel_axis=2)
+    angle += (tx * 0.005)
+
+    return image, angle
 
 
 def generator(samples, batch_size=32):
@@ -32,9 +44,12 @@ def generator(samples, batch_size=32):
 
                 angle = batch_sample[1]
 
-                if np.random.rand() > 0.5:
+                if np.random.uniform() > 0.5:
                     image = np.fliplr(image)
                     angle *= -1
+
+                if np.random.uniform() > 0.5:
+                    image, angle = extend_image(image, angle)
 
                 image = image / 255. - 0.5
                 images.append(image[60:-20, :, :])
@@ -84,15 +99,8 @@ def main(args):
             steering = float(steering)
             samples.append([center, steering, throttle, _break, speed])
 
-            left_steer, right_steer = 0, 0
-            if steering > 0:
-                left_steer = steering * 1.25
-                right_steer = steering * 0.75
-            elif steering < 0:
-                left_steer = steering * 0.75
-                right_steer = steering * 1.25
-            samples.append([left, left_steer, throttle, _break, speed])
-            samples.append([right, right_steer, throttle, _break, speed])
+            samples.append([left, steering + 0.25, throttle, _break, speed])
+            samples.append([right, steering - 0.25, throttle, _break, speed])
 
     train_samples, valid_samples = train_test_split(samples)
 
