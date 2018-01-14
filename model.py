@@ -22,19 +22,32 @@ def augment_brightness(image):
     return cv2.cvtColor(image_hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
 
 
+def trans_image(image,steer,trans_range):
+    # Translation
+    rows, cols, _ = image.shape
+    tr_x = trans_range*np.random.uniform()-trans_range/2
+    steer_ang = steer + tr_x/trans_range*2*.2
+    tr_y = 40*np.random.uniform()-40/2
+    #tr_y = 0
+    Trans_M = np.float32([[1,0,tr_x],[0,1,tr_y]])
+    image_tr = cv2.warpAffine(image,Trans_M,(cols,rows))
+    
+    return image_tr,steer_ang
+
+
 def extend_image(image, angle):
     # rotation
     # image, r = transformations.random_rotation(image, 15, row_axis=0, col_axis=1, channel_axis=2)
     # angle += (0.1 / 15) * r
 
-    max_tx, max_ty = 0.1 * image.shape[1], 0.1 * image.shape[0]
-    image, tx, ty = transformations.random_shift(image, 0.1, 0.1, row_axis=0, col_axis=1, channel_axis=2)
+    max_tx = 0.15 * image.shape[1]
+    image, ty, tx = transformations.random_shift(image, 0.1, 1, row_axis=0, col_axis=1, channel_axis=2)
     angle += tx/max_tx * 0.2
 
     return image, angle
 
 
-def generator(samples, batch_size=32):
+def generator(samples, batch_size=32, training=False):
     num_samples = len(samples)
     while 1:
         samples = shuffle(samples)
@@ -53,14 +66,17 @@ def generator(samples, batch_size=32):
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                image = augment_brightness(image)
-                image, angle = extend_image(image, angle)
+                if training:
+                    image = augment_brightness(image)
+                    # image, angle = extend_image(image, angle)
+                    image, angle = trans_image(image, angle, 100)
 
-                if rev:
-                    image = np.fliplr(image)
-                    angle *= -1
+                    if rev:
+                        image = np.fliplr(image)
+                        angle *= -1
 
                 image = image[60:-20, :, :]
+                image = cv2.resize(image, (64, 64))
 
                 image = image / 255. - 0.5
                 images.append(image)
@@ -73,7 +89,7 @@ def generator(samples, batch_size=32):
 
 
 def create_model():
-    inp = Input(shape=(80, 320, 3))
+    inp = Input(shape=(64, 64, 3))
     x = Conv2D(24, (5, 5), activation='elu', strides=(2, 2))(inp)
     x = Conv2D(36, (5, 5), activation='elu', strides=(2, 2))(x)
     x = Conv2D(48, (5, 5), activation='elu', strides=(2, 2))(x)
@@ -116,7 +132,7 @@ def main(args):
 
     train_samples, valid_samples = train_test_split(samples)
 
-    train_generator = generator(train_samples, batch_size=BATCH_SIZE)
+    train_generator = generator(train_samples, batch_size=BATCH_SIZE, training=True)
     valid_generator = generator(valid_samples, batch_size=BATCH_SIZE)
 
     model = create_model()
