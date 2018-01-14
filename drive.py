@@ -16,6 +16,8 @@ from keras.models import load_model
 import h5py
 from keras import __version__ as keras_version
 
+import cv2
+
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
@@ -64,6 +66,8 @@ def telemetry(sid, data):
 
         image_array = image_array / 255. - 0.5
         image_array = image_array[60:-20, :, :]
+
+        image_array = cv2.resize(image_array, (64, 64))
 
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 

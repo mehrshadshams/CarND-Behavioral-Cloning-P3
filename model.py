@@ -5,7 +5,6 @@ import numpy as np
 import argparse
 from keras.models import Model, load_model
 from keras.layers import Input, Dense, Conv2D, Flatten, Dropout
-import transformations
 from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
@@ -31,18 +30,40 @@ def trans_image(image,steer,trans_range):
     #tr_y = 0
     Trans_M = np.float32([[1,0,tr_x],[0,1,tr_y]])
     image_tr = cv2.warpAffine(image,Trans_M,(cols,rows))
-    
+
     return image_tr,steer_ang
 
 
-def extend_image(image, angle):
-    # rotation
-    # image, r = transformations.random_rotation(image, 15, row_axis=0, col_axis=1, channel_axis=2)
-    # angle += (0.1 / 15) * r
+def add_shadow(image):
+    h, w, _ = image.shape
+    x1, y1 = w * np.random.rand(), 0
+    x2, y2 = w * np.random.rand(), h
 
-    max_tx = 0.15 * image.shape[1]
-    image, ty, tx = transformations.random_shift(image, 0.1, 1, row_axis=0, col_axis=1, channel_axis=2)
-    angle += tx/max_tx * 0.2
+    xm, ym = np.mgrid[0:h, 0:w]
+    mask = np.zeros_like(image[:, :, 0])
+
+    mask[(ym - y1) * (x2 - x1) - (y2 - y1) * (xm - x1) > 0] = 1
+
+    cond = mask == np.random.randint(2)
+
+    shadow_ratio = np.random.uniform(low=0.2, high=0.5)
+
+    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+
+    hls[:, :, 1][cond] *= shadow_ratio
+
+    return cv2.cvtColor(hls, cv2.COLOR_HLS2RGB)
+
+
+def extend_image(image, angle, rev = False):
+
+    image, angle = trans_image(image, angle, 100)
+    image = add_shadow(image)
+    image = augment_brightness(image)
+
+    if rev:
+        image = np.fliplr(image)
+        angle *= -1
 
     return image, angle
 
@@ -67,18 +88,15 @@ def generator(samples, batch_size=32, training=False):
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 if training:
-                    image = augment_brightness(image)
-                    # image, angle = extend_image(image, angle)
-                    image, angle = trans_image(image, angle, 100)
-
-                    if rev:
-                        image = np.fliplr(image)
-                        angle *= -1
+                    image, angle = extend_image(image, angle, rev)
 
                 image = image[60:-20, :, :]
                 image = cv2.resize(image, (64, 64))
 
                 image = image / 255. - 0.5
+
+                image = cv2.resize(image, (64, 64))
+
                 images.append(image)
                 angles.append(angle)
 
@@ -89,6 +107,7 @@ def generator(samples, batch_size=32, training=False):
 
 
 def create_model():
+    # inp = Input(shape=(80, 320, 3))
     inp = Input(shape=(64, 64, 3))
     x = Conv2D(24, (5, 5), activation='elu', strides=(2, 2))(inp)
     x = Conv2D(36, (5, 5), activation='elu', strides=(2, 2))(x)
