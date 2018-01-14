@@ -4,8 +4,7 @@ import cv2
 import numpy as np
 import argparse
 from keras.models import Model, load_model
-from keras.layers import Input, Lambda, Dense, Conv2D, Flatten, MaxPool2D, Dropout
-# from keras.preprocessing import image as image_process
+from keras.layers import Input, Dense, Conv2D, Flatten, Dropout
 import transformations
 from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
@@ -15,13 +14,22 @@ BATCH_SIZE = 128
 EPOCHS = 10
 
 
+def augment_brightness(image):
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV).astype(np.float32)
+    random_brightness = .5 + np.random.uniform()
+    image_hsv[:, :, 2] *= random_brightness
+    image_hsv[:, :, 2] = np.clip(image_hsv[:, :, 2], 0, 255)
+    return cv2.cvtColor(image_hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
+
+
 def extend_image(image, angle):
     # rotation
-    image, r = transformations.random_rotation(image, 15, row_axis=0, col_axis=1, channel_axis=2)
-    angle += (0.1 / 15) * r
+    # image, r = transformations.random_rotation(image, 15, row_axis=0, col_axis=1, channel_axis=2)
+    # angle += (0.1 / 15) * r
 
-    image, tx, ty = transformations.random_shift(image, 20, 20, row_axis=0, col_axis=1, channel_axis=2)
-    angle += (tx * 0.005)
+    max_tx, max_ty = 0.1 * image.shape[1], 0.1 * image.shape[0]
+    image, tx, ty = transformations.random_shift(image, 0.1, 0.1, row_axis=0, col_axis=1, channel_axis=2)
+    angle += tx/max_tx * 0.2
 
     return image, angle
 
@@ -37,26 +45,24 @@ def generator(samples, batch_size=32):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                name = './data2/IMG/' + batch_sample[0].split('/')[-1]
+                name = './data/IMG/' + batch_sample[0].split('/')[-1]
+
                 rev = batch_sample[-1]
+                angle = batch_sample[1]
 
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                angle = batch_sample[1]
+                image = augment_brightness(image)
+                image, angle = extend_image(image, angle)
 
                 if rev:
-#                if np.random.uniform() > 0.5:
                     image = np.fliplr(image)
                     angle *= -1
 
                 image = image[60:-20, :, :]
 
-                # if np.random.uniform() > 0.5:
-                #    image, angle = extend_image(image, angle)
-
                 image = image / 255. - 0.5
-                #images.append(image[60:-20, :, :])
                 images.append(image)
                 angles.append(angle)
 
@@ -69,13 +75,10 @@ def generator(samples, batch_size=32):
 def create_model():
     inp = Input(shape=(80, 320, 3))
     x = Conv2D(24, (5, 5), activation='elu', strides=(2, 2))(inp)
-    # x = MaxPool2D()(x)
     x = Conv2D(36, (5, 5), activation='elu', strides=(2, 2))(x)
-    # x = MaxPool2D()(x)
     x = Conv2D(48, (5, 5), activation='elu', strides=(2, 2))(x)
 
     x = Conv2D(64, (3, 3), activation='elu')(x)
-    # x = MaxPool2D()(x)
     x = Conv2D(64, (3, 3), activation='elu')(x)
     x = Dropout(rate=0.5)(x)
     x = Flatten()(x)
@@ -96,7 +99,7 @@ def main(args):
     samples = []
     df = pd.read_csv('data/driving_log.csv')
 
-    with open('data2/driving_log.csv', 'r') as f:
+    with open('data/driving_log.csv', 'r') as f:
         csv_reader = csv.reader(f)
         next(csv_reader, None)
         for row in csv_reader:
