@@ -11,7 +11,7 @@ from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 EPOCHS = 10
 
 
@@ -37,22 +37,27 @@ def generator(samples, batch_size=32):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                name = './data/IMG/' + batch_sample[0].split('/')[-1]
+                name = './data2/IMG/' + batch_sample[0].split('/')[-1]
+                rev = batch_sample[-1]
 
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 angle = batch_sample[1]
 
-                if np.random.uniform() > 0.5:
+                if rev:
+#                if np.random.uniform() > 0.5:
                     image = np.fliplr(image)
                     angle *= -1
 
-                if np.random.uniform() > 0.5:
-                    image, angle = extend_image(image, angle)
+                image = image[60:-20, :, :]
+
+                # if np.random.uniform() > 0.5:
+                #    image, angle = extend_image(image, angle)
 
                 image = image / 255. - 0.5
-                images.append(image[60:-20, :, :])
+                #images.append(image[60:-20, :, :])
+                images.append(image)
                 angles.append(angle)
 
             X_train = np.array(images)
@@ -91,16 +96,20 @@ def main(args):
     samples = []
     df = pd.read_csv('data/driving_log.csv')
 
-    with open('data/driving_log.csv', 'r') as f:
+    with open('data2/driving_log.csv', 'r') as f:
         csv_reader = csv.reader(f)
         next(csv_reader, None)
         for row in csv_reader:
             center, left, right, steering, throttle, _break, speed = row
             steering = float(steering)
-            samples.append([center, steering, throttle, _break, speed])
+            samples.append([center, steering, throttle, _break, speed, True])
+            s2 = 0.25 # abs(steering * 0.5)
 
-            samples.append([left, steering + 0.25, throttle, _break, speed])
-            samples.append([right, steering - 0.25, throttle, _break, speed])
+            samples.append([left, steering + s2, throttle, _break, speed, False])
+            samples.append([right, steering - s2, throttle, _break, speed, False])
+            samples.append([center, steering, throttle, _break, speed, True])
+            samples.append([left, steering + s2, throttle, _break, speed, True])
+            samples.append([right, steering - s2, throttle, _break, speed, True])
 
     train_samples, valid_samples = train_test_split(samples)
 
