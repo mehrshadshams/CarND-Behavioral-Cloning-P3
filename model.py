@@ -50,7 +50,7 @@ def add_shadow(image):
 
     hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
 
-    hls[:, :, 1][cond] *= shadow_ratio
+    hls[:, :, 1][cond] = hls[:, :, 1][cond] * shadow_ratio
 
     return cv2.cvtColor(hls, cv2.COLOR_HLS2RGB)
 
