@@ -69,7 +69,7 @@ def extend_image(image, angle, rev=False):
     return image, angle
 
 
-def generator(samples, batch_size=32, training=False):
+def generator(data_path, samples, batch_size=32, training=False):
     num_samples = len(samples)
     while 1:
         samples = shuffle(samples)
@@ -80,7 +80,7 @@ def generator(samples, batch_size=32, training=False):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                name = './data/IMG/' + batch_sample[0].split('/')[-1]
+                name = data_path + '/IMG/' + batch_sample[0].split('/')[-1]
 
                 rev = batch_sample[-1]
                 angle = batch_sample[1]
@@ -135,7 +135,7 @@ def main(args):
     samples = []
     df = pd.read_csv('data/driving_log.csv')
 
-    with open('data/driving_log.csv', 'r') as f:
+    with open(args.data + '/driving_log.csv', 'r') as f:
         csv_reader = csv.reader(f)
         next(csv_reader, None)
         for row in csv_reader:
@@ -152,8 +152,8 @@ def main(args):
 
     train_samples, valid_samples = train_test_split(samples)
 
-    train_generator = generator(train_samples, batch_size=BATCH_SIZE, training=True)
-    valid_generator = generator(valid_samples, batch_size=BATCH_SIZE)
+    train_generator = generator(args.data, train_samples, batch_size=BATCH_SIZE, training=True)
+    valid_generator = generator(args.data, valid_samples, batch_size=BATCH_SIZE)
 
     model = create_model()
 
