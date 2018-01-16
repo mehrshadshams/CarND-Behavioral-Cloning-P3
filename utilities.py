@@ -2,11 +2,12 @@ import matplotlib.pyplot as plt
 
 
 def plot_history(history, show=True):
-    epochs = len(history)
-    plt.plot([history[i][0] for i in range(epochs)], label='train')
-    plt.plot([history[i][1] for i in range(epochs)], label='valid')
-    plt.title('Accuracy')
-    plt.legend(['train', 'test'])
+    plt.plot(history['loss'], label='train')
+    plt.plot(history['val_loss'], label='valid')
+    plt.title('Model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'validation'])
     plt.savefig('history.png')
 
     if show:
