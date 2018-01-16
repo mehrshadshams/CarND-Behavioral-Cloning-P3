@@ -130,12 +130,13 @@ def create_model():
 
 
 def main(args):
-    print('Reading driving log...')
+    path = args.data + '/driving_log.csv'
+    print('Reading driving log... ' + path)
 
     samples = []
     df = pd.read_csv('data/driving_log.csv')
 
-    with open(args.data + '/driving_log.csv', 'r') as f:
+    with open(path, 'r') as f:
         csv_reader = csv.reader(f)
         next(csv_reader, None)
         for row in csv_reader:
