@@ -8,6 +8,8 @@ from keras.layers import Input, Dense, Conv2D, Flatten, Dropout
 from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
+import utilities
 
 BATCH_SIZE = 128
 EPOCHS = 10
@@ -21,17 +23,17 @@ def augment_brightness(image):
     return cv2.cvtColor(image_hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
 
 
-def trans_image(image,steer,trans_range):
+def trans_image(image, steer, trans_range):
     # Translation
     rows, cols, _ = image.shape
-    tr_x = trans_range*np.random.uniform()-trans_range/2
-    steer_ang = steer + tr_x/trans_range*2*.2
-    tr_y = 40*np.random.uniform()-40/2
-    #tr_y = 0
-    Trans_M = np.float32([[1,0,tr_x],[0,1,tr_y]])
-    image_tr = cv2.warpAffine(image,Trans_M,(cols,rows))
+    tr_x = trans_range * np.random.uniform() - trans_range / 2
+    steer_ang = steer + tr_x / trans_range * 2 * .2
+    tr_y = 40 * np.random.uniform() - 40 / 2
+    # tr_y = 0
+    Trans_M = np.float32([[1, 0, tr_x], [0, 1, tr_y]])
+    image_tr = cv2.warpAffine(image, Trans_M, (cols, rows))
 
-    return image_tr,steer_ang
+    return image_tr, steer_ang
 
 
 def add_shadow(image):
@@ -55,8 +57,7 @@ def add_shadow(image):
     return cv2.cvtColor(hls, cv2.COLOR_HLS2RGB)
 
 
-def extend_image(image, angle, rev = False):
-
+def extend_image(image, angle, rev=False):
     image, angle = trans_image(image, angle, 100)
     image = add_shadow(image)
     image = augment_brightness(image)
@@ -140,8 +141,8 @@ def main(args):
         for row in csv_reader:
             center, left, right, steering, throttle, _break, speed = row
             steering = float(steering)
-            samples.append([center, steering, throttle, _break, speed, True])
-            s2 = 0.25 # abs(steering * 0.5)
+            samples.append([center, steering, throttle, _break, speed, False])
+            s2 = 0.25  # abs(steering * 0.5)
 
             samples.append([left, steering + s2, throttle, _break, speed, False])
             samples.append([right, steering - s2, throttle, _break, speed, False])
@@ -161,20 +162,40 @@ def main(args):
 
     print('Training model for {0} epochs.'.format(args.epochs))
 
-    model.fit_generator(generator=train_generator,
-                        steps_per_epoch=len(train_samples) // BATCH_SIZE,
-                        validation_data=valid_generator,
-                        validation_steps=len(valid_samples) // BATCH_SIZE,
-                        epochs=args.epochs,
-                        callbacks=[checkpoint])
+    history = model.fit_generator(generator=train_generator,
+                                  steps_per_epoch=len(train_samples) // BATCH_SIZE,
+                                  validation_data=valid_generator,
+                                  validation_steps=len(valid_samples) // BATCH_SIZE,
+                                  epochs=args.epochs,
+                                  callbacks=[checkpoint])
 
     model.save('model.h5')
+
+    utilities.plot_history(history, show=False)
+
+    # print(len(train_samples))
+    #
+    # angles = []
+    # for i in range(10):
+    #     x = 0
+    #     for X_train, y_train in train_generator:
+    #         angles.extend(list(y_train))
+    #         x += 1
+    #         print(x)
+    #         if x == len(train_samples) // BATCH_SIZE:
+    #             break
+    #
+    # df = pd.DataFrame(angles)
+    # df.hist()
+    # plt.show()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Model arguments.')
     parser.add_argument('--epochs', type=int, default=EPOCHS,
                         help='Number of epochs')
+    parser.add_argument('--data', default='./data',
+                        help='Location of data folder')
 
     args = parser.parse_args()
     main(args)
