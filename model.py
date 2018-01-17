@@ -81,24 +81,12 @@ def generator(data_path, samples, batch_size=32, training=False):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                files = batch_sample[0]
-
-                if training:
-                    n = 0
-                else:
-                    n = np.random.randint(3)
-
-                filename = files[n]
+                filename = batch_sample[0]
 
                 name = data_path + '/IMG/' + filename.split('/')[-1]
 
                 rev = batch_sample[-1]
                 angle = batch_sample[1]
-
-                if n == 1:
-                    angle += CORRECTION_FACTOR
-                elif n == 2:
-                    angle -= CORRECTION_FACTOR
 
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -157,11 +145,10 @@ def main(args):
         for row in csv_reader:
             center, left, right, steering, throttle, _break, speed = row
             steering = float(steering)
-            samples.append([(center, left, right), steering, throttle, _break, speed, False])
-            # s2 = 0.25  # abs(steering * 0.5)
-            #
-            # samples.append([left, steering + s2, throttle, _break, speed, False])
-            # samples.append([right, steering - s2, throttle, _break, speed, False])
+            samples.append([center, steering, throttle, _break, speed, False])
+            samples.append([left, steering + CORRECTION_FACTOR, throttle, _break, speed, False])
+            samples.append([right, steering - CORRECTION_FACTOR, throttle, _break, speed, False])
+
             # samples.append([center, steering, throttle, _break, speed, True])
             # samples.append([left, steering + s2, throttle, _break, speed, True])
             # samples.append([right, steering - s2, throttle, _break, speed, True])
