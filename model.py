@@ -13,6 +13,7 @@ import utilities
 
 BATCH_SIZE = 128
 EPOCHS = 10
+CORRECTION_FACTOR = 0.25
 
 
 def augment_brightness(image):
@@ -62,7 +63,7 @@ def extend_image(image, angle, rev=False):
     image = add_shadow(image)
     image = augment_brightness(image)
 
-    if rev and abs(angle) > 0.1:
+    if np.random.uniform() > 0.5 and abs(angle) > 0.1:
         image = np.fliplr(image)
         angle *= -1
 
@@ -80,10 +81,24 @@ def generator(data_path, samples, batch_size=32, training=False):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                name = data_path + '/IMG/' + batch_sample[0].split('/')[-1]
+                files = batch_sample[0]
+
+                if training:
+                    n = 0
+                else:
+                    n = np.random.randint(3)
+
+                filename = files[n]
+
+                name = data_path + '/IMG/' + filename.split('/')[-1]
 
                 rev = batch_sample[-1]
                 angle = batch_sample[1]
+
+                if n == 1:
+                    angle += CORRECTION_FACTOR
+                elif n == 2:
+                    angle -= CORRECTION_FACTOR
 
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -142,14 +157,14 @@ def main(args):
         for row in csv_reader:
             center, left, right, steering, throttle, _break, speed = row
             steering = float(steering)
-            samples.append([center, steering, throttle, _break, speed, False])
-            s2 = 0.25  # abs(steering * 0.5)
-
-            samples.append([left, steering + s2, throttle, _break, speed, False])
-            samples.append([right, steering - s2, throttle, _break, speed, False])
-            samples.append([center, steering, throttle, _break, speed, True])
-            samples.append([left, steering + s2, throttle, _break, speed, True])
-            samples.append([right, steering - s2, throttle, _break, speed, True])
+            samples.append([(center, left, right), steering, throttle, _break, speed, False])
+            # s2 = 0.25  # abs(steering * 0.5)
+            #
+            # samples.append([left, steering + s2, throttle, _break, speed, False])
+            # samples.append([right, steering - s2, throttle, _break, speed, False])
+            # samples.append([center, steering, throttle, _break, speed, True])
+            # samples.append([left, steering + s2, throttle, _break, speed, True])
+            # samples.append([right, steering - s2, throttle, _break, speed, True])
 
     train_samples, valid_samples = train_test_split(samples)
 
