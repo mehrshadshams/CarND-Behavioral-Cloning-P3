@@ -1,6 +1,7 @@
 import csv
 import cv2
 import numpy as np
+import pandas as pd
 import argparse
 from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
@@ -10,7 +11,7 @@ import utilities
 
 BATCH_SIZE = 128
 EPOCHS = 10
-CORRECTION_FACTOR = 0.25
+CORRECTION_FACTOR = 0.25 # try 0.1
 
 
 def augment_brightness(image):
@@ -71,22 +72,27 @@ def extend_image(image, angle):
     return image, angle
 
 
-def generator(data_path, samples, batch_size=32, training=False):
-    num_samples = len(samples)
+def generator(data_path, X, y, batch_size=32, training=False):
+    num_samples = len(X)
     while 1:
-        samples = shuffle(samples)
+        X, y = shuffle(X, y)
         for offset in range(0, num_samples, batch_size):
             end = offset + batch_size
-            batch_samples = samples[offset:end]
+            batch_X, batch_y = X[offset:end], y[offset:end]
 
             images = []
             angles = []
-            for batch_sample in batch_samples:
-                filename = batch_sample[0]
+            for row in range(len(batch_X)):
+                files, angle = batch_X[row], batch_y[row]
+                if training:
+                    idx = np.random.randint(0, 3)
+                else:
+                    # only pass center image for validation
+                    idx = 1
+
+                filename = files[idx]
 
                 name = data_path + '/IMG/' + filename.split('/')[-1]
-
-                angle = batch_sample[1]
 
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -99,41 +105,29 @@ def generator(data_path, samples, batch_size=32, training=False):
 
                 image = image / 255. - 0.5
 
-                image = cv2.resize(image, (64, 64))
-
                 images.append(image)
                 angles.append(angle)
 
-            X_train = np.array(images)
-            y_train = np.array(angles)
+            images = np.array(images)
+            angles = np.array(angles)
 
-            yield shuffle(X_train, y_train)
+            yield shuffle(images, angles)
 
 
 def main(args):
     path = args.data + '/driving_log.csv'
     print('Reading driving log... ' + path)
 
-    samples = []
+    df = pd.read_csv(path)
+    df.columns = ['center', 'left', 'right', 'steering', 'throttle', 'brake', 'speed']
 
-    with open(path, 'r') as f:
-        csv_reader = csv.reader(f)
-        next(csv_reader, None)
-        for row in csv_reader:
-            center, left, right, steering, throttle, _break, speed = row
-            steering = float(steering)
-            samples.append([center, steering, throttle, _break, speed, False])
-            samples.append([left, steering + CORRECTION_FACTOR, throttle, _break, speed, False])
-            samples.append([right, steering - CORRECTION_FACTOR, throttle, _break, speed, False])
+    X = df[['left', 'center', 'right']]
+    y = df['steering']
 
-            # samples.append([center, steering, throttle, _break, speed, True])
-            # samples.append([left, steering + s2, throttle, _break, speed, True])
-            # samples.append([right, steering - s2, throttle, _break, speed, True])
+    X_train, X_val, y_train, y_val = train_test_split(X.as_matrix(), y.as_matrix(), test_size=0.1, random_state=42)
 
-    train_samples, valid_samples = train_test_split(samples)
-
-    train_generator = generator(args.data, train_samples, batch_size=BATCH_SIZE, training=True)
-    valid_generator = generator(args.data, valid_samples, batch_size=BATCH_SIZE)
+    train_generator = generator(args.data, X_train, y_train, batch_size=BATCH_SIZE, training=True)
+    valid_generator = generator(args.data, X_val, y_val, batch_size=BATCH_SIZE)
 
     model = utilities.create_model()
 
@@ -143,9 +137,9 @@ def main(args):
     print('Training model for {0} epochs.'.format(args.epochs))
 
     history = model.fit_generator(generator=train_generator,
-                                  steps_per_epoch=len(train_samples) // BATCH_SIZE,
+                                  steps_per_epoch=len(X_train) // BATCH_SIZE,
                                   validation_data=valid_generator,
-                                  validation_steps=len(valid_samples) // BATCH_SIZE,
+                                  validation_steps=len(X_val) // BATCH_SIZE,
                                   epochs=args.epochs,
                                   callbacks=[checkpoint])
 
