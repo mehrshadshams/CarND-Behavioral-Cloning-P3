@@ -1,14 +1,10 @@
 import csv
-import pandas as pd
 import cv2
 import numpy as np
 import argparse
-from keras.models import Model, load_model, Sequential
-from keras.layers import Input, Dense, Conv2D, Flatten, Lambda, Dropout
 from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-import matplotlib.pyplot as plt
 import utilities
 
 
@@ -59,14 +55,18 @@ def add_shadow(image):
     return cv2.cvtColor(hls, cv2.COLOR_HLS2RGB)
 
 
-def extend_image(image, angle, rev=False):
-    image, angle = trans_image(image, angle, 100)
-    image = add_shadow(image)
-    image = augment_brightness(image)
+def extend_image(image, angle):
 
-    if np.random.uniform() > 0.5 and abs(angle) > 0.1:
-        image = np.fliplr(image)
-        angle *= -1
+    # Only extend we a probability of 50%
+    if np.random.uniform() > 0.5:
+        image, angle = trans_image(image, angle, 100)
+        image = add_shadow(image)
+        image = augment_brightness(image)
+
+        # Don't flip image if we're moving in straight line (almost)
+        if abs(angle) > 0.1:
+            image = np.fliplr(image)
+            angle *= -1
 
     return image, angle
 
@@ -86,14 +86,13 @@ def generator(data_path, samples, batch_size=32, training=False):
 
                 name = data_path + '/IMG/' + filename.split('/')[-1]
 
-                rev = batch_sample[-1]
                 angle = batch_sample[1]
 
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 if training:
-                    image, angle = extend_image(image, angle, rev)
+                    image, angle = extend_image(image, angle)
 
                 image = image[60:-20, :, :]
                 image = cv2.resize(image, (64, 64))
@@ -116,7 +115,6 @@ def main(args):
     print('Reading driving log... ' + path)
 
     samples = []
-    df = pd.read_csv('data/driving_log.csv')
 
     with open(path, 'r') as f:
         csv_reader = csv.reader(f)
