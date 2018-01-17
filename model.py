@@ -11,6 +11,7 @@ from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 import utilities
 
+
 BATCH_SIZE = 128
 EPOCHS = 10
 CORRECTION_FACTOR = 0.25
@@ -174,7 +175,8 @@ def main(args):
 
     model.save('model.h5')
 
-    utilities.plot_history(history.history, show=False)
+    # utilities.plot_history(history.history, show=False)
+    utilities.save_history(history)
 
     # print(len(train_samples))
     #

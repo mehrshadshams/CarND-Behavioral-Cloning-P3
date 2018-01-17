@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import pickle
 
 
 def plot_history(history, show=True):
@@ -12,3 +13,8 @@ def plot_history(history, show=True):
 
     if show:
         plt.show()
+
+
+def save_history(history):
+    with open('history.pkl', 'wb') as f:
+        pickle.dump(history, f)
