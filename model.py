@@ -62,7 +62,7 @@ def extend_image(image, angle, rev=False):
     image = add_shadow(image)
     image = augment_brightness(image)
 
-    if rev:
+    if rev and abs(angle) > 0.1:
         image = np.fliplr(image)
         angle *= -1
 
@@ -172,7 +172,7 @@ def main(args):
 
     model.save('model.h5')
 
-    utilities.plot_history(history, show=False)
+    utilities.plot_history(history.history, show=False)
 
     # print(len(train_samples))
     #
