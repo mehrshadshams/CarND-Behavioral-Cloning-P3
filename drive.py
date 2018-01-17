@@ -71,6 +71,9 @@ def telemetry(sid, data):
 
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 
+        # if abs(steering_angle) < 0.10:
+        #     steering_angle = 0.0
+
         throttle = controller.update(float(speed))
 
         print(steering_angle, throttle)

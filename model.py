@@ -111,47 +111,6 @@ def generator(data_path, samples, batch_size=32, training=False):
             yield shuffle(X_train, y_train)
 
 
-def create_model():
-    # inp = Input(shape=(80, 320, 3))
-    model = Sequential()
-    model.add(Lambda(lambda x: x / 255. - 0.5, input_shape=(64, 64, 3)))
-    model.add(Conv2D(24, (5, 5), activation='elu', strides=(2, 2)))
-    model.add(Conv2D(36, (5, 5), activation='elu', strides=(2, 2)))
-    model.add(Conv2D(48, (5, 5), activation='elu', strides=(2, 2)))
-
-    model.add(Conv2D(64, (3, 3), activation='elu'))
-    model.add(Conv2D(64, (3, 3), activation='elu'))
-
-    model.add(Dropout(rate=0.5))
-    model.add(Flatten())
-    model.add(Dense(100, activation='elu'))
-    model.add(Dense(50, activation='elu'))
-    model.add(Dense(10, activation='elu'))
-    model.add(Dense(1))
-
-    # inp = Input(shape=(64, 64, 3))
-    # x = Conv2D(24, (5, 5), activation='elu', strides=(2, 2))(inp)
-    # x = Conv2D(36, (5, 5), activation='elu', strides=(2, 2))(x)
-    # x = Conv2D(48, (5, 5), activation='elu', strides=(2, 2))(x)
-    #
-    # x = Conv2D(64, (3, 3), activation='elu')(x)
-    # x = Conv2D(64, (3, 3), activation='elu')(x)
-    # x = Dropout(rate=0.5)(x)
-    # x = Flatten()(x)
-    # x = Dense(100, activation='elu')(x)
-    # x = Dense(50, activation='elu')(x)
-    # x = Dense(10, activation='elu')(x)
-    # output = Dense(1)(x)
-    #
-    # model = Model(inputs=inp, outputs=output)
-
-    model.compile(optimizer='adam', loss='mse')
-
-    print(model.summary())
-
-    return model
-
-
 def main(args):
     path = args.data + '/driving_log.csv'
     print('Reading driving log... ' + path)
@@ -178,7 +137,7 @@ def main(args):
     train_generator = generator(args.data, train_samples, batch_size=BATCH_SIZE, training=True)
     valid_generator = generator(args.data, valid_samples, batch_size=BATCH_SIZE)
 
-    model = create_model()
+    model = utilities.create_model()
 
     checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.h5', monitor='val_loss', verbose=1,
                                  save_best_only=True)
