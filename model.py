@@ -96,7 +96,7 @@ def generator(data_path, X, y, batch_size=32, training=False):
 
                 if idx == 0:
                     angle += CORRECTION_FACTOR
-                elif idx == 1:
+                elif idx == 2:
                     angle -= CORRECTION_FACTOR
 
                 name = data_path + '/IMG/' + filename.split('/')[-1]
