@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pickle
 from keras.models import Model, load_model, Sequential
 from keras.layers import Input, Dense, Conv2D, Flatten, Lambda, Dropout
+from keras.optimizers import Adam
 
 
 def plot_history(history, show=True):
@@ -57,7 +58,9 @@ def create_model():
 
     model = Model(inputs=inp, outputs=output)
 
-    model.compile(optimizer='adam', loss='mse')
+    adam = Adam(lr=1e-4)
+
+    model.compile(optimizer=adam, loss='mse')
 
     print(model.summary())
 
