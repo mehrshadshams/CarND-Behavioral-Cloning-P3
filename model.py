@@ -85,13 +85,19 @@ def generator(data_path, X, y, batch_size=32, training=False):
             angles = []
             for row in range(len(batch_X)):
                 files, angle = batch_X[row], batch_y[row]
-                if 1 == 1: # training:
-                    idx = np.random.randint(0, 3)
-                else:
-                    # only pass center image for validation
-                    idx = 1
+                # if 1 == 1: # training:
+                #     idx = np.random.randint(0, 3)
+                # else:
+                #     # only pass center image for validation
+                #     idx = 1
 
+                idx = np.random.randint(0, 3)
                 filename = files[idx]
+
+                if idx == 0:
+                    angle += CORRECTION_FACTOR
+                elif idx == 1:
+                    angle -= CORRECTION_FACTOR
 
                 name = data_path + '/IMG/' + filename.split('/')[-1]
 
