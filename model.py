@@ -85,7 +85,7 @@ def generator(data_path, X, y, batch_size=32, training=False):
             angles = []
             for row in range(len(batch_X)):
                 files, angle = batch_X[row], batch_y[row]
-                if training:
+                if 1 == 1: # training:
                     idx = np.random.randint(0, 3)
                 else:
                     # only pass center image for validation
