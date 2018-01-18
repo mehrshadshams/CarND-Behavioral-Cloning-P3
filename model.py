@@ -11,7 +11,7 @@ import utilities
 
 BATCH_SIZE = 128
 EPOCHS = 10
-CORRECTION_FACTOR = 0.25 # try 0.1
+CORRECTION_FACTOR = 0.11 # 0.25 # try 0.1
 
 
 def augment_brightness(image):
@@ -59,15 +59,16 @@ def add_shadow(image):
 def extend_image(image, angle):
 
     # Only extend we a probability of 50%
-    if np.random.uniform() > 0.5:
-        image, angle = trans_image(image, angle, 100)
-        image = add_shadow(image)
-        image = augment_brightness(image)
+    # if np.random.uniform() > 0.5:
+    image, angle = trans_image(image, angle, 100)
+    image = add_shadow(image)
+    image = augment_brightness(image)
 
-        # Don't flip image if we're moving in straight line (almost)
-        if abs(angle) > 0.1:
-            image = np.fliplr(image)
-            angle *= -1
+    # Don't flip image if we're moving in straight line (almost)
+    if np.random.uniform() > 0.5:
+    # if abs(angle) > 0.1:
+        image = np.fliplr(image)
+        angle *= -1
 
     return image, angle
 
