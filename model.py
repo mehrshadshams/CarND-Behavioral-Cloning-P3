@@ -11,7 +11,7 @@ import utilities
 
 BATCH_SIZE = 128
 EPOCHS = 10
-CORRECTION_FACTOR = 0.11 # 0.25 # try 0.1
+CORRECTION_FACTOR = 0.25 # try 0.1
 
 
 def augment_brightness(image):
@@ -125,7 +125,7 @@ def main(args):
     X = df[['left', 'center', 'right']]
     y = df['steering']
 
-    X_train, X_val, y_train, y_val = train_test_split(X.as_matrix(), y.as_matrix(), test_size=0.1, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X.as_matrix(), y.as_matrix(), test_size=0.1, random_state=100)
 
     train_generator = generator(args.data, X_train, y_train, batch_size=BATCH_SIZE, training=True)
     valid_generator = generator(args.data, X_val, y_val, batch_size=BATCH_SIZE)
@@ -147,7 +147,7 @@ def main(args):
     model.save('model.h5')
 
     # utilities.plot_history(history.history, show=False)
-    utilities.save_history(history)
+    utilities.save_history(history.history)
 
     # print(len(train_samples))
     #
