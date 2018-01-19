@@ -35,6 +35,26 @@ def trans_image(image, steer, trans_range):
     return image_tr, steer_ang
 
 
+def shift_img(image, steer):
+    """
+    randomly shift image horizontally
+    add proper steering angle to each image
+    """
+    max_shift = 55
+    max_ang = 0.14  # ang_per_pixel = 0.0025
+
+    rows, cols, _ = image.shape
+
+    random_x = np.random.randint(-max_shift, max_shift + 1)
+    dst_steer = steer + (random_x / max_shift) * max_ang
+    if abs(dst_steer) > 1:
+        dst_steer = -1 if (dst_steer < 0) else 1
+
+    mat = np.float32([[1, 0, random_x], [0, 1, 0]])
+    dst_img = cv2.warpAffine(image, mat, (cols, rows))
+    return dst_img, dst_steer
+
+
 def add_shadow(image):
     h, w, _ = image.shape
     x1, y1 = w * np.random.rand(), 0
@@ -60,7 +80,8 @@ def extend_image(image, angle):
 
     # Only extend we a probability of 50%
     # if np.random.uniform() > 0.5:
-    image, angle = trans_image(image, angle, 100)
+    # image, angle = trans_image(image, angle, 100)
+    image, angle = shift_img(image, angle)
     image = add_shadow(image)
     image = augment_brightness(image)
 
@@ -112,6 +133,9 @@ def generator(data_path, X, y, batch_size=32, training=False):
 
                 image = image / 255. - 0.5
 
+                # clip the resulting angle between -1..1
+                angle = np.clip(angle, -1.0, 1.0)
+
                 images.append(image)
                 angles.append(angle)
 
@@ -131,12 +155,15 @@ def main(args):
     X = df[['left', 'center', 'right']]
     y = df['steering']
 
-    X_train, X_val, y_train, y_val = train_test_split(X.as_matrix(), y.as_matrix(), test_size=0.1, random_state=100)
+    X, y = shuffle(X, y)
+
+    X_train, X_val, y_train, y_val = train_test_split(X.as_matrix(), y.as_matrix(), test_size=0.1) # , random_state=100)
 
     train_generator = generator(args.data, X_train, y_train, batch_size=BATCH_SIZE, training=True)
     valid_generator = generator(args.data, X_val, y_val, batch_size=BATCH_SIZE)
 
     model = utilities.create_model()
+    # model.load_weights('weights.18-0.05072.h5')
 
     checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.h5', monitor='val_loss', verbose=1,
                                  save_best_only=True)
