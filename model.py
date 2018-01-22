@@ -1,4 +1,3 @@
-import csv
 import cv2
 import numpy as np
 import pandas as pd
@@ -11,10 +10,13 @@ import utilities
 
 BATCH_SIZE = 128
 EPOCHS = 10
-CORRECTION_FACTOR = 0.25 # try 0.1
+CORRECTION_FACTOR = 0.25
 
 
 def augment_brightness(image):
+    """
+    Add random brightness
+    """
     image_hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV).astype(np.float32)
     random_brightness = .5 + np.random.uniform()
     image_hsv[:, :, 2] *= random_brightness
@@ -22,40 +24,27 @@ def augment_brightness(image):
     return cv2.cvtColor(image_hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
 
 
-def trans_image(image, steer, trans_range):
-    # Translation
-    rows, cols, _ = image.shape
-    tr_x = trans_range * np.random.uniform() - trans_range / 2
-    steer_ang = steer + tr_x / trans_range * 2 * .2
-    tr_y = 40 * np.random.uniform() - 40 / 2
-    # tr_y = 0
-    Trans_M = np.float32([[1, 0, tr_x], [0, 1, tr_y]])
-    image_tr = cv2.warpAffine(image, Trans_M, (cols, rows))
-
-    return image_tr, steer_ang
-
-
-def shift_img(image, steer):
+def translate_image(image, steer):
     """
-    randomly shift image horizontally
-    add proper steering angle to each image
+    Add random translation to image
     """
-    max_shift = 55
-    max_ang = 0.14  # ang_per_pixel = 0.0025
+    max_shift = 50
+    max_angle = 0.15
 
     rows, cols, _ = image.shape
 
     random_x = np.random.randint(-max_shift, max_shift + 1)
-    dst_steer = steer + (random_x / max_shift) * max_ang
-    if abs(dst_steer) > 1:
-        dst_steer = -1 if (dst_steer < 0) else 1
+    steer += (random_x / max_shift) * max_angle
 
-    mat = np.float32([[1, 0, random_x], [0, 1, 0]])
-    dst_img = cv2.warpAffine(image, mat, (cols, rows))
-    return dst_img, dst_steer
+    M = np.float32([[1, 0, random_x], [0, 1, 0]])
+    img = cv2.warpAffine(image, M, (cols, rows))
+    return img, steer
 
 
 def add_shadow(image):
+    """
+    Add random shadow
+    """
     h, w, _ = image.shape
     x1, y1 = w * np.random.rand(), 0
     x2, y2 = w * np.random.rand(), h
@@ -78,16 +67,12 @@ def add_shadow(image):
 
 def extend_image(image, angle):
 
-    # Only extend we a probability of 50%
-    # if np.random.uniform() > 0.5:
-    # image, angle = trans_image(image, angle, 100)
-    image, angle = shift_img(image, angle)
+    image, angle = translate_image(image, angle)
     image = add_shadow(image)
     image = augment_brightness(image)
 
-    # Don't flip image if we're moving in straight line (almost)
+    # flip the image by 50% chance
     if np.random.uniform() > 0.5:
-    # if abs(angle) > 0.1:
         image = np.fliplr(image)
         angle *= -1
 
@@ -95,6 +80,10 @@ def extend_image(image, angle):
 
 
 def generator(data_path, X, y, batch_size=32, training=False):
+    """
+    This is the generator that loads, extends and returns the images and their corresponding steering wheel
+    angle for a given batch
+    """
     num_samples = len(X)
     while 1:
         X, y = shuffle(X, y)
@@ -106,11 +95,6 @@ def generator(data_path, X, y, batch_size=32, training=False):
             angles = []
             for row in range(len(batch_X)):
                 files, angle = batch_X[row], batch_y[row]
-                # if 1 == 1: # training:
-                #     idx = np.random.randint(0, 3)
-                # else:
-                #     # only pass center image for validation
-                #     idx = 1
 
                 idx = np.random.randint(0, 3)
                 filename = files[idx]
@@ -125,13 +109,12 @@ def generator(data_path, X, y, batch_size=32, training=False):
                 image = cv2.imread(name)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+                # Only extend image in training
                 if training:
                     image, angle = extend_image(image, angle)
 
                 image = image[60:-20, :, :]
                 image = cv2.resize(image, (64, 64))
-
-                image = image / 255. - 0.5
 
                 # clip the resulting angle between -1..1
                 angle = np.clip(angle, -1.0, 1.0)
@@ -149,21 +132,26 @@ def main(args):
     path = args.data + '/driving_log.csv'
     print('Reading driving log... ' + path)
 
+    # Load the csv
     df = pd.read_csv(path)
     df.columns = ['center', 'left', 'right', 'steering', 'throttle', 'brake', 'speed']
 
     X = df[['left', 'center', 'right']]
     y = df['steering']
 
+    # Shuffle the data before we split it
     X, y = shuffle(X, y)
 
-    X_train, X_val, y_train, y_val = train_test_split(X.as_matrix(), y.as_matrix(), test_size=0.1) # , random_state=100)
+    # Split data into train and validation set of size 10%
+    X_train, X_val, y_train, y_val = train_test_split(X.as_matrix(), y.as_matrix(), test_size=0.1)
 
+    # Create train generator
     train_generator = generator(args.data, X_train, y_train, batch_size=BATCH_SIZE, training=True)
+
+    # Create validation generator
     valid_generator = generator(args.data, X_val, y_val, batch_size=BATCH_SIZE)
 
     model = utilities.create_model()
-    # model.load_weights('weights.18-0.05072.h5')
 
     checkpoint = ModelCheckpoint('weights.{epoch:02d}-{val_loss:.5f}.h5', monitor='val_loss', verbose=1,
                                  save_best_only=True)
@@ -179,24 +167,7 @@ def main(args):
 
     model.save('model.h5')
 
-    # utilities.plot_history(history.history, show=False)
     utilities.save_history(history.history)
-
-    # print(len(train_samples))
-    #
-    # angles = []
-    # for i in range(10):
-    #     x = 0
-    #     for X_train, y_train in train_generator:
-    #         angles.extend(list(y_train))
-    #         x += 1
-    #         print(x)
-    #         if x == len(train_samples) // BATCH_SIZE:
-    #             break
-    #
-    # df = pd.DataFrame(angles)
-    # df.hist()
-    # plt.show()
 
 
 if __name__ == '__main__':

@@ -22,6 +22,7 @@ sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
+OUTPUT = 'output'
 
 
 class SimplePIController:
@@ -64,15 +65,15 @@ def telemetry(sid, data):
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
 
-        image_array = image_array / 255. - 0.5
         image_array = image_array[60:-20, :, :]
 
         image_array = cv2.resize(image_array, (64, 64))
 
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        # image_array = image_array / 255. - 0.5
 
-        # if abs(steering_angle) < 0.10:
-        #     steering_angle = 0.0
+        image_tensor = image_array[None, :, :, :]
+
+        steering_angle = float(model.predict(image_tensor, batch_size=1))
 
         throttle = controller.update(float(speed))
 
