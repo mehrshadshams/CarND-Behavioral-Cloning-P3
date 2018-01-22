@@ -208,3 +208,12 @@ convolution layers and create a single image for each frame and here's the activ
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=_YpAa8rnSSw
 " target="_blank"><img src="https://img.youtube.com/vi/_YpAa8rnSSw/0.jpg" 
 alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
+
+The model turns the steering wheel too much. I think this is due to the fact that I recorded the 
+images with keyboard instead of a joystick :(
+
+This was a very interesting project. I hoped I could make the model generalize more to work well on the 
+second track. I also would to like to spend some time on applying Class Activation Maps as it explained here to better 
+understand what the model learns.
+
+https://jacobgil.github.io/deeplearning/vehicle-steering-angle-visualizations
