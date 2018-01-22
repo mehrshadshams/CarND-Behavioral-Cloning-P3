@@ -23,9 +23,7 @@ The goals / steps of this project are the following:
 [recovery2]: ./images/recovery2.jpg "Recovery 2"
 [recovery3]: ./images/recovery3.jpg "Recovery 3"
 [crop]: ./images/center_crop.jpg "Crop"
-[result]: ./videos/output_video.mp4 "Output"
 [activations]: ./images/activations.jpg "Activations"
-[activations_video]: ./videos/activations_video.mp4 "Activations"
 
 ## Rubric Points
 ---
@@ -205,7 +203,9 @@ Finally here's the result of the model driving:
 I was curious how will the activations look like, so I wrote the code in show_activations.py that computes the activations of all 
 convolution layers and create a single image for each frame
 
-![alt text][activations]
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=_YpAa8rnSSw
+" target="_blank"><img src="https://img.youtube.com/vi/_YpAa8rnSSw/0.jpg" 
+alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 and here's the activations for the recorded test
 
