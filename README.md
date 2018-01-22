@@ -213,7 +213,7 @@ The model turns the steering wheel too much. I think this is due to the fact tha
 images with keyboard instead of a joystick :(
 
 This was a very interesting project. I hoped I could make the model generalize more to work well on the 
-second track. I also would to like to spend some time on applying Class Activation Maps as it explained here to better 
+second track but did not get good results. I also would to like to spend some time on applying Class Activation Maps as it explained here to better 
 understand what the model learns.
 
 https://jacobgil.github.io/deeplearning/vehicle-steering-angle-visualizations
